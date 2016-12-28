@@ -1,0 +1,40 @@
+.t-colour {
+  font-family: "Courier New";
+  color: #7C786A;
+}
+.text-tb {
+  font-family: "Courier New";
+  color: #FFF5C3
+}
+.bgbox {
+    background-color: #FFF5C3;
+}
+.bgbutton {
+  padding:2%;
+  background-color: #EB6E44;
+  border: none;
+}
+
+.input-st {
+  border: none;
+  padding:2%;
+}
+
+.bgpage {
+  background-color: #8DCDC1
+}
+.center-box {
+    margin: auto;
+    width: 50%;
+    border: 5px solid #7C786A;
+    padding: 10px;
+}
+.center-inner {
+  margin: auto;
+  width: 40%;
+  padding: 20px;
+
+}
+.center-text {
+  text-align: center;
+}

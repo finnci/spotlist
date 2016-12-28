@@ -1,15 +1,18 @@
 from flask import Flask, redirect, url_for, session, request, render_template
 from flask_oauthlib.client import OAuth, OAuthException
 from flask import Response
+from urllib import urlencode
+import urlparse
 import requests
+import logging
+import time
 import json
 
-SPOTIFY_APP_ID = '0e78fc3c02324da885aab026fe730863'
-SPOTIFY_APP_SECRET = '5d86d3b7fc1b4e6dae07c64e0ff0af3a'
+SPOTIFY_APP_ID = '<INSERT_ID>'
+SPOTIFY_APP_SECRET = '<INSERT_SECRETER_KEY'
 
 app = Flask(__name__, static_folder='stat', static_url_path="")
-app.debug = True
-app.secret_key = 'development'
+app.debug = False
 oauth = OAuth(app)
 
 spotify = oauth.remote_app(
@@ -58,9 +61,7 @@ def spotify_authorized():
         headers={'Authorization':
                  'Bearer ' + session.get('oauth_token')[0]}).json()
 
-    #headers={'Authorization': 'Bearer ' + session.get('oauth_token')[0]}).json()
     session['spot_id'] = data['id']
-    print 'Logged in %s' % data
 
     return redirect('/playlister')
 
@@ -69,45 +70,82 @@ def spotify_authorized():
 def playlister():
     return render_template('playlister.html')
 
+@app.route('/about')
+def app_about():
+    return render_template('about.html')
 
-@app.route('/create/playlist/<name>')
-def ui_create_playlist(name):
-    plist_data = {'name': name}
-    playlist_obj = create_playlist(session.get('spot_id'), plist_data)
+@app.route('/create/playlist/', methods=['POST'])
+def ui_create_playlist():
+    r_data = json.loads(request.data)
+    artist = r_data['artist']
+    songs = r_data['songs']
+    track_uris = track_searcher(songs, artist)
+    p_list = create_playlist({'name': 'Playlist for gig: %s' % artist}).json()
+    emblink = "https://embed.spotify.com/?uri=%s" % p_list['uri']
+    pid = p_list['id']
+    if track_uris:
+        plist_pop = populate_playlist(pid, track_uris)
+    else:
+        return Response(json.dumps({'error': 'No tracks found.'}),
+                        status=500,
+                        mimetype='application/json')
 
+    return Response(json.dumps({'link': emblink}),
+                    status=200,
+                    mimetype='application/json')
 
-def populate_playlist(playlist_id, tracklist, artist):
+def populate_playlist(playlist_id, tracklist):
     playlist_post = 'https://api.spotify.com/v1/users/%s/playlists/%s/tracks' % (
-        session.get('spot_id'), '2tAcbeaDEk0357Q4YZ7QEU')
+        session.get('spot_id'), playlist_id)
     headers = {
         'Authorization': 'Bearer ' + session.get('oauth_token')[0],
         'content_type': 'application/json'
     }
-    # call get track uris
-    track_uris = track_searcher(tracklist, artist)
-    return requests.post(
-        playlist_post, headers=headers, data=json.dumps(track_uris))
+    pc = requests.post(playlist_post,
+                       headers=headers,
+                       data=json.dumps(list(tracklist)))
+    return pc
 
 
 def track_searcher(tracklist, artist):
     track_search = 'https://api.spotify.com/v1/search?q='
-    track_uris = []
+    track_uris = set([])
     headers = {
         'Authorization': 'Bearer ' + session.get('oauth_token')[0],
         'content_type': 'application_json'
     }
     # todo: find a nice way to format this right.
-    import urlparse
-    from urllib import urlencode
-    params = {'track': 'finnplaceholder', 'artist': artist}
-    url_parts = list(urlparse.urlparse(url))
+    for track in tracklist:
+        params = {
+            'track': track.encode('utf-8'),
+            'artist': artist
+        }
+        final_url = do_ugly_url_stuff(track_search, params)
+        track_get = requests.get(final_url, headers=headers)
+        try:
+            for trk in track_get.json()['tracks']['items']:
+                try:
+                    if artist.lower() == str(trk['artists'][0]['name']).lower():
+                        track_uris.add(trk['uri'])
+                        break
+                except UnicodeError:
+                    pass
+        except IndexError:
+            pass
+    return track_uris
+
+def do_ugly_url_stuff(track_search, params):
+    url_parts = list(urlparse.urlparse(track_search))
     query = dict(urlparse.parse_qsl(url_parts[4]))
     query.update(params)
     url_parts[4] = urlencode(query)
     final_url = urlparse.urlunparse(url_parts)
-    for track in tracklist:
-        finalurl.replace('finnplaceholder', track)
-        track_get = requests.get(final_url, headers=headers)
+    final_url = final_url.replace('search?', 'search?q=')
+    final_url = final_url.replace('artist=', 'artist:')
+    final_url = final_url.replace('track=', 'track:')
+    final_url = final_url + "&type=track"
+    return final_url
+
 
 @app.route('/set/search/<artist>')
 def search_setlist(artist):
@@ -123,15 +161,22 @@ def search_setlist(artist):
             for song_set in mset['sets']['set']:
                 for slist in song_set['song']:
                     res_dict['sets'].add(slist['@name'])
-        except (AttributeError, TypeError, KeyError):
+        except (AttributeError, TypeError, KeyError) as e:
+            logging.debug('Err was: %s' % e)
             pass
     res_d2 = {'sets': list(res_dict['sets'])}
+    if not res_d2['sets']:
+        res_d2['sets'] = ["Can't find this one, sorry.",
+                          "Guess you're a filthy hipster.",
+                          "Or maybe you spelt the artists name wrong."
+                          "Or its not available on setlist.fm for some reason"]
+
     resp = Response(json.dumps(res_d2), status=200, mimetype='application/json')
     return resp
 
 
 def create_playlist(playlist_data):
-    create_playlist_url = 'https://api.spotify.com/v1/users/1155665355/playlists'
+    create_playlist_url = 'https://api.spotify.com/v1/users/%s/playlists' % session.get('spot_id')
     headers = {
         'Authorization': 'Bearer ' + session.get('oauth_token')[0],
         'content_type': 'application_json'

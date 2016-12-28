@@ -1,52 +1,18 @@
 <html>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<style type="text/css">
-.t-colour {
-  font-family: "Courier New";
-  color: #7C786A;
-}
-.text-tb {
-  font-family: "Courier New";
-  color: #FFF5C3
-}
-.bgbox {
-    background-color: #FFF5C3;
-}
-.bgbutton {
-  padding:2%;
-  background-color: #EB6E44;
-  border: none;
-}
-
-.input-st {
-  border: none;
-  padding:2%;
-}
-
-.bgpage {
-  background-color: #8DCDC1
-}
-.center-box {
-    margin: auto;
-    width: 50%;
-    border: 5px solid #7C786A;
-    padding: 10px;
-}
-.center-text {
-  text-align: center;
-}
-</style>
+<link rel='stylesheet' type="text/css" href='playlister.css'></style>
 <div class='t-colour'>
     <head>
         <title>SPL</title>
     </head>
     <body class='bgpage'>
     <div class='bgbox center-box'>
-    <p class='center-text' style='font-size:30px;'>Setlist Playlist</p>
+    <p class='center-text' style='font-size:30px;'>Setlist &rarr; Playlist</p>
+    <p class='center-text'>Create Spotify playlists from an artist's most recent <a href='http://www.setlist.fm/'>setlists</a>.</p>
     </div>
     <div></br></div>
     <div class='bgbox center-box'>
-    <p class='center-text'>I want a play list for: <input id='art_input' class='input-st text' placeholder='artist...'>
+    <p class='center-text'>I want a playlist for: <input id='art_input' class='input-st text' placeholder='artist...'>
     </input><button id="artistSearch" class='bgbutton center-text text-tb' style='padding-left:10px;'>search</button></p>
     </div>
     <div></br></div>
@@ -54,34 +20,12 @@
         <p class='center-text'>Tracks from setlists:</p>
         <ul id='mtracklist'>
         </ul>
-        <p><button class='bgbutton text-tb center-text' style='margin-left:75%' href='{{ url_for('ui_create_playlist', name='bingo')}}'>
+        <p><button id='goplaylist' class='bgbutton text-tb center-text' style='margin-left:75%' href='{{ url_for('ui_create_playlist', name='bingo')}}'>
           Upload</button></p>
     </div>
+    <div></br></div>
+    <p class='center-text'><a href='/about'>About.</a></p>
   </body>
 </div>
-<script>
-$(document.body).on("click", "#artistSearch", function () {
-  $('#mtracklist').empty();
-  var art_var;
-  art_var = document.getElementById("art_input").value;
-  $.ajax({
-    type: 'GET',
-    url: '/set/search/' + art_var,
-    cache: false,
-    success: function(response) {
-       makeList(response.sets);
-      }
-  })
-});
-
-function makeList(array){
-  var list = document.getElementById('mtracklist');
-  for(var i = 0; i < array.length; i++) {
-    var item = document.createElement('li');
-    item.appendChild(document.createTextNode(array[i]));
-    list.appendChild(item);
-  }
-}
- </script>
-
+<script src='sp.js'></script>
 </html>

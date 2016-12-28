@@ -1,19 +1,87 @@
 <html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<style type="text/css">
+.t-colour {
+  font-family: "Courier New";
+  color: #7C786A;
+}
+.text-tb {
+  font-family: "Courier New";
+  color: #FFF5C3
+}
+.bgbox {
+    background-color: #FFF5C3;
+}
+.bgbutton {
+  padding:2%;
+  background-color: #EB6E44;
+  border: none;
+}
+
+.input-st {
+  border: none;
+  padding:2%;
+}
+
+.bgpage {
+  background-color: #8DCDC1
+}
+.center-box {
+    margin: auto;
+    width: 50%;
+    border: 5px solid #7C786A;
+    padding: 10px;
+}
+.center-text {
+  text-align: center;
+}
+</style>
+<div class='t-colour'>
     <head>
         <title>SPL</title>
     </head>
-    <div style='font-family:Courier New;'>
-    <div style='border-style:solid; border-color:#6999e5;'>
-    <body><p style='margin-left:20px'>Setlist Playlist Spotify</p></body>
+    <body class='bgpage'>
+    <div class='bgbox center-box'>
+    <p class='center-text' style='font-size:30px;'>Setlist Playlist</p>
     </div>
+    <div></br></div>
+    <div class='bgbox center-box'>
+    <p class='center-text'>I want a play list for: <input id='art_input' class='input-st text' placeholder='artist...'>
+    </input><button id="artistSearch" class='bgbutton center-text text-tb' style='padding-left:10px;'>search</button></p>
+    </div>
+    <div></br></div>
+    <div class='bgbox center-box'>
+        <p class='center-text'>Tracks from setlists:</p>
+        <ul id='mtracklist'>
+        </ul>
+        <p><button class='bgbutton text-tb center-text' style='margin-left:75%' href='{{ url_for('ui_create_playlist', name='bingo')}}'>
+          Upload</button></p>
+    </div>
+  </body>
+</div>
+<script>
+$(document.body).on("click", "#artistSearch", function () {
+  $('#mtracklist').empty();
+  var art_var;
+  art_var = document.getElementById("art_input").value;
+  $.ajax({
+    type: 'GET',
+    url: '/set/search/' + art_var,
+    cache: false,
+    success: function(response) {
+       makeList(response.sets);
+      }
+  })
+});
 
-    <div style='border-bottom-style:solid; border-bottom-color:#6999e5;'>
-    <p>I want a play list for: <input class='text' placeholder='artist'></input></p>
-    </div>
-    <div>
-        <p>Upload with the upload button -> <button href='{{ url_for('ui_create_playlist', name='bingo')}}' style='border-style:solid; border-color:#6999e5; background-color:#ffffff'>Upload</button></p>
-    </div>
-    <div>Just click about to crop it as needs be. Slack emojii must be [SLACK DIMENSIONS AND CONDITIONS] so the download button will be disabled until those conditions are met.</div>
-    </div>
+function makeList(array){
+  var list = document.getElementById('mtracklist');
+  for(var i = 0; i < array.length; i++) {
+    var item = document.createElement('li');
+    item.appendChild(document.createTextNode(array[i]));
+    list.appendChild(item);
+  }
+}
+ </script>
+
 </html>
-

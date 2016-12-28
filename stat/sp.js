@@ -1,3 +1,5 @@
+$("#goplaylist").hide()
+
 $(document.body).on("click", "#artistSearch", function () {
   $('#mtracklist').empty();
   var art_var;
@@ -8,6 +10,7 @@ $(document.body).on("click", "#artistSearch", function () {
     cache: false,
     success: function(response) {
        makeList(response.sets);
+       $("#goplaylist").show()
       }
   })
 });

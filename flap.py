@@ -7,9 +7,11 @@ import requests
 import logging
 import time
 import json
+import socket
 
 SPOTIFY_APP_ID = '<INSERT_ID>'
 SPOTIFY_APP_SECRET = '<INSERT_SECRETER_KEY'
+HG_KEY = '<HG_KEY>'
 
 app = Flask(__name__, static_folder='stat', static_url_path="")
 app.debug = False
@@ -83,13 +85,16 @@ def ui_create_playlist():
     p_list = create_playlist({'name': 'Playlist for gig: %s' % artist}).json()
     emblink = "https://embed.spotify.com/?uri=%s" % p_list['uri']
     pid = p_list['id']
+    conn = socket.create_connection(("7f590b16.carbon.hostedgraphite.com", 2003))
     if track_uris:
         plist_pop = populate_playlist(pid, track_uris)
     else:
+        conn.send("%s.playlist.failed 1\n" % HG_KEY)
         return Response(json.dumps({'error': 'No tracks found.'}),
                         status=500,
                         mimetype='application/json')
-
+    conn.send("%s.playlist.created 1\n" % HG_KEY)
+    conn.close()
     return Response(json.dumps({'link': emblink}),
                     status=200,
                     mimetype='application/json')

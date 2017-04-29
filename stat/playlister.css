@@ -7,7 +7,7 @@
   color: #FFF5C3
 }
 .bgbox {
-    background-color: #FFF5C3;
+    background-color: #EFFFEA;
 }
 .bgbutton {
   padding:2%;
@@ -20,8 +20,15 @@
   padding:2%;
 }
 
+.login-l {
+  color: #FFF5C3;
+  hover: #fff4c1
+  visited: #FFF5C3;
+  text-decoration: none;
+}
+
 .bgpage {
-  background-color: #8DCDC1
+  background-color: #C1FFF0;
 }
 .center-box {
     margin: auto;

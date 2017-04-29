@@ -10,10 +10,10 @@ import time
 import json
 import socket
 
-SPOTIFY_APP_ID = '<INSERT_ID>'
-SPOTIFY_APP_SECRET = '<INSERT_SECRETER_KEY'
-HG_KEY = '<HG_KEY>'
-APP_KEY = '<APP_KEY>'
+SPOTIFY_APP_ID = '<>'
+SPOTIFY_APP_SECRET = '<>'
+HG_KEY = "<>"
+APP_KEY = '<>'
 
 app = Flask(__name__, static_folder='stat', static_url_path="")
 app.debug = False
@@ -38,14 +38,13 @@ spotify = oauth.remote_app(
 
 @app.route('/')
 def index():
-    return redirect(url_for('login'))
+    return render_template('home.html')
 
 
 @app.route('/login')
 def login():
     callback = url_for(
         'spotify_authorized',
-        next=request.args.get('next') or request.referrer or None,
         _external=True)
     return spotify.authorize(callback=callback)
 
@@ -54,7 +53,8 @@ def login():
 def spotify_authorized():
     try:
         resp = spotify.authorized_response()
-    except OAuthException:
+    except OAuthException as e:
+        logging.error("CF exception %s" % e)
         return redirect('/login')
     if resp is None:
         return 'Access denied: reason={0} error={1}'.format(
@@ -66,7 +66,8 @@ def spotify_authorized():
     try:
         data = requests.get('https://api.spotify.com/v1/me',
                              headers={'Authorization':'Bearer ' + session.get('oauth_token')[0]}).json()
-    except OAuthException:
+    except OAuthException as e:
+        logging.error("CF exception %s" % e)
         redirect('/login')
     session['spot_id'] = data['id']
 
@@ -89,8 +90,15 @@ def ui_create_playlist():
     track_uris = track_searcher(songs, artist)
     p_list = create_playlist({'name': 'Playlist for gig: %s' % artist}).json()
     emblink = "https://embed.spotify.com/?uri=%s" % p_list.get('uri')
-    pid = p_list['id']
     conn = socket.create_connection(("7f590b16.carbon.hostedgraphite.com", 2003))
+    try:
+        pid = p_list['id']
+    except KeyError:
+        logging.error('KeyError on p_list[id]. p_list was %s' % p_list)
+        conn.send("%s.playlist.failed 1\n" % HG_KEY)
+        return Response(json.dumps({'error': ['Something went wrong with dashboard creation, please try again.']}),
+                        status=500,
+                        mimetype='application/json')
     if track_uris:
         plist_pop = populate_playlist(pid, track_uris)
     else:
@@ -136,9 +144,7 @@ def track_searcher(tracklist, artist):
             for trk in track_get.json()['tracks']['items']:
                 try:
                     artist = artist.lower()
-                    artist = artist.replace(' ' ,'')
                     given = str(trk['artists'][0]['name']).lower()
-                    given = given.replace(' ', '')
                     if similar(artist, given) > 0.6:
                         track_uris.add(trk['uri'])
                         break
@@ -177,7 +183,10 @@ def search_setlist(artist):
                 for song_set in mset['sets']['set']:
                     if song_set in ['song', u'song']:
                         for slist in mset['sets']['set']['song']:
-                            res_dict['sets'].add(slist['@name'])
+                            if isinstance(slist, str):
+                                res_dict['sets'].add(mset['sets']['set']['song']['@name'])
+                            else:
+                                res_dict['sets'].add(slist['@name'])
                     else:
                         for slist in song_set['song']:
                             res_dict['sets'].add(slist['@name'])
@@ -211,6 +220,7 @@ def create_playlist(playlist_data):
     post_plist = requests.post(
         create_playlist_url, headers=headers, data=json.dumps(playlist_data))
     # success, return the response object
+    logging.error("CF create resp was %s" % post_plist)
     return post_plist
 
 
@@ -220,4 +230,4 @@ def get_spotify_oauth_token():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')

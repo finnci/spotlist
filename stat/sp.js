@@ -15,6 +15,12 @@ $(document.body).on("click", "#artistSearch", function () {
   })
 });
 
+$("#art_input").keyup(function(event){
+    if(event.keyCode == 13){
+        $("#artistSearch").click();
+    }
+});
+
 $(document.body).on("click", "#goplaylist", function () {
   var tracks = $('#mtracklist').children()
   var art_var = document.getElementById("art_input").value;
@@ -68,6 +74,8 @@ function makeList(array){
     list.appendChild(item);
   }
 }
+
+
 
 function hideUpload(){
   $("#goplaylist").hide()

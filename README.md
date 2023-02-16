@@ -2,10 +2,9 @@
 
 Flask app which talks to setlist.fm to get a list of tracks for a musicians recent setlists, then tries to create a spotify playlist for those tracks.
 
-Currently found at: 
+Previously hosted at: 
 ~~www.setlistplaylist.com
 ~~
 
-
-Update:
+## Update:
 Integration with Setlist.fm's API needs to be updated
